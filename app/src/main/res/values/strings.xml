@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">TinyDo</string>
+    <string name="appwidget_text">Some Todos</string>
+    <string name="add_widget">Add widget</string>
+</resources>
