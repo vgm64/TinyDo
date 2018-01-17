@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="strollthroughthewoods.com.tinydo">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Remote debugging -->
+    <!--android:process=":remote"-->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -20,12 +24,24 @@
         <receiver android:name=".TodoAppWidgetProvider">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
 
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/todo_app_widget_info" />
         </receiver>
+        <service android:name=".TodoistQueryingIntentService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            />
+
+        <service android:name=".WidgetRemoteViewsService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            />
+
     </application>
+
 
 </manifest>

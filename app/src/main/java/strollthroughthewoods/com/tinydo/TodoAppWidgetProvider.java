@@ -3,16 +3,15 @@ package strollthroughthewoods.com.tinydo;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.widget.ArrayAdapter;
 import android.widget.RemoteViews;
 import android.widget.Toast;
 
-import java.net.URI;
 import java.util.Random;
 
 /**
@@ -20,13 +19,20 @@ import java.util.Random;
  */
 public class TodoAppWidgetProvider extends AppWidgetProvider {
 
-    private static final String CURRENT_WIDGET_ID = "CURRENT_WIDGET_ID";
-    public static String EXTRA_WORD = "BALLS";
-
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.d("OnlyOneUpdating", "ACTION:" + (intent.getAction() != null ? intent.getAction() : "No action"));
-        Log.d("OnlyOneUpdating", "ID-" + String.valueOf(intent.getExtras().getInt(CURRENT_WIDGET_ID, -1)));
+
+        LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(context);
+        IntentFilter intentFilter = new IntentFilter(TodoistQueryingIntentService.SEND_BACK_INTENT_ACTION);
+        localBroadcastManager.registerReceiver(this, intentFilter);
+
+        Log.w("TodoAppWidgetProvider:onReceive():", "ACTION:" + (intent.getAction() != null ? intent.getAction() : "No action"));
+        if (intent.getExtras() != null) {
+            intent.getExtras().keySet().stream()
+                    .forEach(key -> {
+                        Log.i("    TodoAppWidgetProvider - ", key + ":: " + intent.getExtras().get(key));
+                    });
+        }
         super.onReceive(context, intent);
     }
 
@@ -34,47 +40,44 @@ public class TodoAppWidgetProvider extends AppWidgetProvider {
                                 int appWidgetId, int[] appWidgetIds) {
 
 
+        Log.i("TodoAppWidgetProvider", "updateAppWidget");
+
+        Intent intentServiceIntent = new Intent(context, TodoistQueryingIntentService.class);
+        intentServiceIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+        intentServiceIntent.setData(Uri.parse(intentServiceIntent.toUri(Intent.URI_INTENT_SCHEME)));
+        context.startService(intentServiceIntent);
+
         CharSequence widgetText = context.getString(R.string.appwidget_text);
 
         // Construct the RemoteViews object
         String number = String.format("%03d", (new Random().nextInt(900) + 100));
-        Log.d("OnlyOneUpdating", number + " " + String.valueOf(appWidgetId));
 
+        // Number refresh works.
+        Intent clickIntent = new Intent(context, TodoAppWidgetProvider.class);
+        clickIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        clickIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
+        clickIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+        clickIntent.setData(Uri.parse(clickIntent.toUri(Intent.URI_INTENT_SCHEME)));
+        PendingIntent pendingClickIntent = PendingIntent.getBroadcast(context,
+                appWidgetId, clickIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
+        // Fill in the list view with data from RemoteViewsService and
+        Intent listViewIntent = new Intent(context, WidgetRemoteViewsService.class);
+        listViewIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
+        listViewIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+
+        // Set on RemoteViews of the list
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.todo_app_widget);
         remoteViews.setTextViewText(R.id.appwidget_text, widgetText + " " + number);
-
-
-        Intent intent = new Intent(context, TodoAppWidgetProvider.class);
-//        intent.setAction("MAKE_UPDATE");
-        intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds);
-        intent.putExtra(CURRENT_WIDGET_ID, appWidgetId);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(context,
-                appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-//        0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-//        appWidgetId, intent, 0);
-        remoteViews.setOnClickPendingIntent(R.id.actionButton, pendingIntent);
-
-        // Try a listview thingy.
-        //remoteViews.setRemoteAdapter(R.layout.todo_app_widget, intent);
-//        intent.setData(Uri.parse("file:///tmp/data.txt"));
-        intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
-
-        remoteViews.setRemoteAdapter(R.id.appwidget_list, intent);
-
-        String[] values = new String[] {"one", "two"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(context,
-                android.R.layout.simple_list_item_1, android.R.id.text1, values);
-
+        remoteViews.setOnClickPendingIntent(R.id.actionButton, pendingClickIntent);
         // Instruct the widget manager to update the widget
         appWidgetManager.updateAppWidget(appWidgetId, remoteViews);
+
     }
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         // There may be multiple widgets active, so update all of them
-        Log.d("OnlyOneUpdating", "onUpdate");
         for (int appWidgetId : appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId, appWidgetIds);
         }

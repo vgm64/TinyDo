@@ -3,21 +3,10 @@ package strollthroughthewoods.com.tinydo;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
 
 public class TodoAppRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
-    private static final String[] items = {"lorem", "ipsum", "dolor",
-            "sit", "amet", "consectetuer",
-            "adipiscing", "elit", "morbi",
-            "vel", "ligula", "vitae",
-            "arcu", "aliquet", "mollis",
-            "etiam", "vel", "erat",
-            "placerat", "ante",
-            "porttitor", "sodales",
-            "pellentesque", "augue",
-            "purus"};
 
     private Context ctxt = null;
     private int appWidgetId;
@@ -40,23 +29,14 @@ public class TodoAppRemoteViewsFactory implements RemoteViewsService.RemoteViews
 
     @Override
     public int getCount() {
-        return (items.length);
+        return TodoistQueryingIntentService.todoItems.size();
     }
 
     @Override
     public RemoteViews getViewAt(int position) {
-        RemoteViews row = new RemoteViews(ctxt.getPackageName(), android.R.layout.simple_list_item_1);
-        //RemoteViews row = new RemoteViews(ctxt.getPackageName(), R.layout.simple_list_item1);
-
-        row.setTextViewText(android.R.id.text1, items[position]);
-
-        Intent i = new Intent();
-        Bundle extras = new Bundle();
-
-        extras.putString(TodoAppWidgetProvider.EXTRA_WORD, items[position]);
-        i.putExtras(extras);
-        row.setOnClickFillInIntent(android.R.id.text1, i);
-
+        // My layout
+        RemoteViews row = new RemoteViews(ctxt.getPackageName(), R.layout.todo_item);
+        row.setTextViewText(android.R.id.text1, TodoistQueryingIntentService.todoItems.get(position));
         return (row);
     }
 
